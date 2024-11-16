@@ -135,23 +135,6 @@ const Map3DComponent = () => {
     }
   };
 
-  const handleCameraChange = debounce(() => {
-    if (map3DRef.current) {
-      const center = map3DRef.current.center;
-      if (center && typeof center.lat === "number" && typeof center.lng === "number") {
-        // Only update if position has changed significantly (> 0.0001 degrees)
-        if (!currentLocation || Math.abs(center.lat - currentLocation.lat) > 0.0001 || Math.abs(center.lng - currentLocation.lng) > 0.0001) {
-          handleLocationChange({
-            lat: center.lat,
-            lng: center.lng,
-            altitude: center.altitude || 400,
-            fromMap: true,
-          });
-        }
-      }
-    }
-  }, 500);
-
   const updateLayerVisibility = async (layerId, isVisible) => {
     if (layerId === LAYER_TYPES.AIR_QUALITY) {
       if (isVisible) {
@@ -177,62 +160,82 @@ const Map3DComponent = () => {
   };
 
   useEffect(() => {
-    const loadGoogleMaps = () => {
-      const script = document.createElement("script");
-      script.src = `https://maps.googleapis.com/maps/api/js?key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY}&v=alpha&libraries=maps3d,places`;
-      script.async = true;
-      script.defer = true;
-
-      script.onload = async () => {
-        const { Map3DElement } = await window.google.maps.importLibrary("maps3d");
-
-        const initialCenter = {
-          lat: 43.6425,
-          lng: -79.3871,
-          altitude: 400,
-        };
-
-        const map3DElement = new Map3DElement({
-          center: initialCenter,
-          range: 1000,
-          tilt: 60,
-          defaultUIDisabled: false,
-        });
-
-        if (mapContainerRef.current) {
-          mapContainerRef.current.innerHTML = "";
-          mapContainerRef.current.appendChild(map3DElement);
-          map3DRef.current = map3DElement;
-
-          // Set initial location
-          setCurrentLocation(initialCenter);
-
-          // Add event listeners
-          map3DElement.addEventListener("camerachange", handleCameraChange);
-          map3DElement.addEventListener("idle", handleCameraChange);
-          map3DElement.Object.entries(activeLayers) // Initialize any active layers
-            .forEach(([layerId, isActive]) => {
-              if (isActive) {
-                updateLayerVisibility(layerId, true);
-              }
-            });
-        }
-      };
-
-      document.head.appendChild(script);
+    const initializeGoogleMaps = (g) => {
+      var h,
+        a,
+        k,
+        p = "The Google Maps JavaScript API",
+        c = "google",
+        l = "importLibrary",
+        q = "__ib__",
+        m = document,
+        b = window;
+      b = b[c] || (b[c] = {});
+      var d = b.maps || (b.maps = {}),
+        r = new Set(),
+        e = new URLSearchParams(),
+        u = () =>
+          h ||
+          (h = new Promise(async (f, n) => {
+            await (a = m.createElement("script"));
+            e.set("libraries", [...r] + "");
+            for (k in g)
+              e.set(
+                k.replace(/[A-Z]/g, (t) => "_" + t[0].toLowerCase()),
+                g[k]
+              );
+            e.set("callback", c + ".maps." + q);
+            a.src = `https://maps.${c}apis.com/maps/api/js?` + e;
+            d[q] = f;
+            a.onerror = () => (h = n(Error(p + " could not load.")));
+            a.nonce = m.querySelector("script[nonce]")?.nonce || "";
+            m.head.append(a);
+          }));
+      d[l] ? console.warn(p + " only loads once. Ignoring:", g) : (d[l] = (f, ...n) => r.add(f) && u().then(() => d[l](f, ...n)));
     };
 
-    loadGoogleMaps();
+    initializeGoogleMaps({
+      key: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
+      v: "alpha",
+    });
 
-    // Cleanup
+    const init = async () => {
+      const { Map3DElement } = await google.maps.importLibrary("maps3d");
+      const map3DElement = new Map3DElement({
+        center: { lat: 43.6425, lng: -79.3871, altitude: 400 },
+        range: 1000,
+        tilt: 60,
+      });
+
+      if (mapContainerRef.current) {
+        mapContainerRef.current.innerHTML = "";
+        mapContainerRef.current.appendChild(map3DElement);
+        map3DRef.current = map3DElement;
+
+        setCurrentLocation({ lat: 43.6425, lng: -79.3871, altitude: 400 });
+
+        map3DElement.addEventListener(
+          "gmp-centerchange",
+          debounce(() => {
+            if (map3DElement.center) {
+              handleLocationChange({
+                lat: map3DElement.center.lat,
+                lng: map3DElement.center.lng,
+                altitude: map3DElement.center.altitude || 400,
+                fromMap: true,
+              });
+            }
+          }, 500)
+        );
+      }
+    };
+
+    init();
+
     return () => {
       const script = document.querySelector('script[src*="maps.googleapis.com/maps/api/js"]');
       if (script) {
         script.remove();
-      }
-      if (map3DRef.current) {
-        map3DRef.current.removeEventListener("camerachange", handleCameraChange);
-        map3DRef.current.removeEventListener("idle", handleCameraChange);
       }
     };
   }, []);
