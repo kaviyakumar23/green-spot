@@ -8,6 +8,10 @@ import { createSolarLayer } from "../layers/SolarLayer";
 import { createWalkabilityLayer } from "../layers/WalkabilityLayer";
 import { createAirQualityLayer } from "../layers/AirQualityLayer";
 import { initializeGoogleMaps } from "../utils/mapUtils";
+import { createGreenSpacesLayer } from "../layers/GreenSpacesLayer";
+import GreenSpacesPanel from "./GreenSpacesPanel";
+import { createTransitLayer } from "../layers/TransitLayer";
+import TransitPanel from "./TransitPanel";
 
 const Map3DComponent = () => {
   const mapContainerRef = useRef(null);
@@ -17,6 +21,8 @@ const Map3DComponent = () => {
   const [currentLocation, setCurrentLocation] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [notification, setNotification] = useState(null);
+  const [greenSpaces, setGreenSpaces] = useState(null);
+  const [transitData, setTransitData] = useState(null);
   const activeLayersRef = useRef({});
 
   const handleToggleLayer = async (layerId) => {
@@ -82,6 +88,14 @@ const Map3DComponent = () => {
 
         case LAYER_TYPES.WALKABILITY:
           layers = await createWalkabilityLayer(map3DRef, currentLocation);
+          break;
+
+        case LAYER_TYPES.GREEN_SPACES:
+          layers = await createGreenSpacesLayer(map3DRef, currentLocation, showNotification, setIsLoading, setGreenSpaces);
+          break;
+
+        case LAYER_TYPES.TRANSIT:
+          layers = await createTransitLayer(map3DRef, currentLocation, showNotification, setIsLoading, setTransitData);
           break;
       }
 
@@ -222,6 +236,8 @@ const Map3DComponent = () => {
       <LayerControlPanel activeLayers={activeLayers} onToggleLayer={handleToggleLayer} />
       <AirQualityPanel location={currentLocation} visible={activeLayers[LAYER_TYPES.AIR_QUALITY]} />
       <SolarPanel location={currentLocation} visible={activeLayers[LAYER_TYPES.SOLAR]} />
+      <GreenSpacesPanel location={currentLocation} visible={activeLayersRef.current[LAYER_TYPES.GREEN_SPACES]} greenSpaces={greenSpaces} />
+      <TransitPanel location={currentLocation} visible={activeLayers[LAYER_TYPES.TRANSIT]} transitData={transitData} />
 
       {isLoading && (
         <Box
