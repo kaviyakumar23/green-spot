@@ -12,6 +12,8 @@ import { createGreenSpacesLayer } from "../layers/GreenSpacesLayer";
 import GreenSpacesPanel from "./GreenSpacesPanel";
 import { createTransitLayer } from "../layers/TransitLayer";
 import TransitPanel from "./TransitPanel";
+import SustainabilityScorePanel from "./ScorePanel";
+import { calculateSustainabilityScore } from "../utils/sustainabilityScore";
 
 const Map3DComponent = () => {
   const mapContainerRef = useRef(null);
@@ -23,7 +25,9 @@ const Map3DComponent = () => {
   const [notification, setNotification] = useState(null);
   const [greenSpaces, setGreenSpaces] = useState(null);
   const [transitData, setTransitData] = useState(null);
+  const [solarData, setSolarData] = useState(null);
   const activeLayersRef = useRef({});
+  const [sustainabilityScore, setSustainabilityScore] = useState(null);
 
   const handleToggleLayer = async (layerId) => {
     setActiveLayers((prev) => {
@@ -79,7 +83,7 @@ const Map3DComponent = () => {
 
       switch (layerId) {
         case LAYER_TYPES.SOLAR:
-          layers = await createSolarLayer(map3DRef, currentLocation, showNotification, setIsLoading);
+          layers = await createSolarLayer(map3DRef, currentLocation, showNotification, setIsLoading, setSolarData);
           break;
 
         case LAYER_TYPES.AIR_QUALITY:
@@ -127,6 +131,13 @@ const Map3DComponent = () => {
   useEffect(() => {
     activeLayersRef.current = activeLayers;
   }, [activeLayers]);
+
+  useEffect(() => {
+    if (currentLocation) {
+      const score = calculateSustainabilityScore(solarData, greenSpaces, transitData);
+      setSustainabilityScore(score);
+    }
+  }, [solarData, greenSpaces, transitData, currentLocation]);
 
   useEffect(() => {
     initializeGoogleMaps({
@@ -238,6 +249,15 @@ const Map3DComponent = () => {
       <SolarPanel location={currentLocation} visible={activeLayers[LAYER_TYPES.SOLAR]} />
       <GreenSpacesPanel location={currentLocation} visible={activeLayersRef.current[LAYER_TYPES.GREEN_SPACES]} greenSpaces={greenSpaces} />
       <TransitPanel location={currentLocation} visible={activeLayers[LAYER_TYPES.TRANSIT]} transitData={transitData} />
+      <SustainabilityScorePanel
+        visible={true} // You could add this to layer controls if desired
+        sustainabilityScore={sustainabilityScore}
+        activeLayers={activeLayers}
+        solarData={solarData}
+        greenSpacesData={greenSpaces}
+        transitData={transitData}
+        currentLocation={currentLocation}
+      />
 
       {isLoading && (
         <Box

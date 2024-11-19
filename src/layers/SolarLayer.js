@@ -1,6 +1,6 @@
 import { SOLAR_COLORS, SOLAR_THRESHOLDS } from "../utils/constants";
 
-export const createSolarLayer = async (map3DRef, currentLocation, showNotification, setIsLoading) => {
+export const createSolarLayer = async (map3DRef, currentLocation, showNotification, setIsLoading, setSolarData) => {
   if (!map3DRef.current) return;
 
   try {
@@ -15,6 +15,8 @@ export const createSolarLayer = async (map3DRef, currentLocation, showNotificati
     if (!response.ok) throw new Error("Failed to fetch solar data");
     const data = await response.json();
     console.log("Solar API Response:", data);
+
+    setSolarData(data);
 
     const layers = [];
     if (data.solarPotential?.roofSegmentStats) {
