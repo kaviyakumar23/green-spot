@@ -53,7 +53,7 @@ const GreenSpacesPanel = ({ location, visible, greenSpaces }) => {
       elevation={3}
       sx={{
         position: "absolute",
-        top: 80,
+        bottom: 20,
         left: 20,
         width: 350,
         maxWidth: "90vw",
