@@ -275,8 +275,8 @@ const SustainabilityScorePanel = ({ visible, activeLayers, solarData, greenSpace
       elevation={3}
       sx={{
         position: "absolute",
-        top: 80,
-        left: 20,
+        top: 20,
+        right: 20,
         width: 380,
         maxWidth: "90vw",
         maxHeight: "80vh",

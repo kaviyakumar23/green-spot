@@ -27,6 +27,7 @@ const Map3DComponent = () => {
   const [solarData, setSolarData] = useState(null);
   const activeLayersRef = useRef({});
   const [sustainabilityScore, setSustainabilityScore] = useState(null);
+  const [selectedPanel, setSelectedPanel] = useState(null);
 
   const handleToggleLayer = async (layerId) => {
     setActiveLayers((prev) => {
@@ -236,11 +237,25 @@ const Map3DComponent = () => {
         }}
       />
       <SearchBar onLocationSelect={handleSearchLocation} />
-      <LayerControlPanel activeLayers={activeLayers} onToggleLayer={handleToggleLayer} />
-      <AirQualityPanel location={currentLocation} visible={activeLayers[LAYER_TYPES.AIR_QUALITY]} />
-      <SolarPanel location={currentLocation} visible={activeLayers[LAYER_TYPES.SOLAR]} />
-      <GreenSpacesPanel location={currentLocation} visible={activeLayersRef.current[LAYER_TYPES.GREEN_SPACES]} greenSpaces={greenSpaces} />
-      <TransitPanel location={currentLocation} visible={activeLayers[LAYER_TYPES.TRANSIT]} transitData={transitData} />
+      <LayerControlPanel
+        activeLayers={activeLayers}
+        onToggleLayer={handleToggleLayer}
+        onSelectPanel={setSelectedPanel}
+        selectedPanel={selectedPanel}
+      />
+
+      <AirQualityPanel location={currentLocation} visible={activeLayers[LAYER_TYPES.AIR_QUALITY] && selectedPanel === LAYER_TYPES.AIR_QUALITY} />
+      <SolarPanel location={currentLocation} visible={activeLayers[LAYER_TYPES.SOLAR] && selectedPanel === LAYER_TYPES.SOLAR} />
+      <GreenSpacesPanel
+        location={currentLocation}
+        visible={activeLayersRef.current[LAYER_TYPES.GREEN_SPACES] && selectedPanel === LAYER_TYPES.GREEN_SPACES}
+        greenSpaces={greenSpaces}
+      />
+      <TransitPanel
+        location={currentLocation}
+        visible={activeLayers[LAYER_TYPES.TRANSIT] && selectedPanel === LAYER_TYPES.TRANSIT}
+        transitData={transitData}
+      />
       <SustainabilityScorePanel
         visible={true} // You could add this to layer controls if desired
         sustainabilityScore={sustainabilityScore}
@@ -269,7 +284,6 @@ const Map3DComponent = () => {
           }}
         >
           <CircularProgress />
-          <Typography>Loading solar data...</Typography>
         </Box>
       )}
 
