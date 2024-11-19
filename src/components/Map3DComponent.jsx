@@ -13,7 +13,6 @@ import GreenSpacesPanel from "./GreenSpacesPanel";
 import { createTransitLayer } from "../layers/TransitLayer";
 import TransitPanel from "./TransitPanel";
 import SustainabilityScorePanel from "./ScorePanel";
-import { calculateSustainabilityScore } from "../utils/sustainabilityScore";
 
 const Map3DComponent = () => {
   const mapContainerRef = useRef(null);
@@ -131,13 +130,6 @@ const Map3DComponent = () => {
   useEffect(() => {
     activeLayersRef.current = activeLayers;
   }, [activeLayers]);
-
-  useEffect(() => {
-    if (currentLocation) {
-      const score = calculateSustainabilityScore(solarData, greenSpaces, transitData);
-      setSustainabilityScore(score);
-    }
-  }, [solarData, greenSpaces, transitData, currentLocation]);
 
   useEffect(() => {
     initializeGoogleMaps({
