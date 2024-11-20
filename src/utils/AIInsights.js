@@ -77,7 +77,7 @@ export const generateInsights = async (solarData, airQualityData, walkabilityDat
     });
 
     console.log("Sending to AI:", analysisData);
-
+    console.log(import.meta.env.VITE_API_URL);
     const response = await fetch(`${import.meta.env.VITE_API_URL}/api/insights`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
