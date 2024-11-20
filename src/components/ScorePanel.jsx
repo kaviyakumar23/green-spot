@@ -56,11 +56,21 @@ const SustainabilityScorePanel = ({
     if (!data?.indexes?.[0]) return { score: 0, metrics: {} };
 
     const primaryIndex = data.indexes[0];
-
-    // Convert AQI to a 0-20 score (lower AQI is better)
-    // Assuming AQI scale of 0-500, where 0-50 is considered good
     const aqi = primaryIndex.aqi || primaryIndex.aqiDisplay;
-    const baseScore = Math.max(20 - aqi / 25, 0);
+    let baseScore;
+    if (aqi >= 80) {
+      baseScore = 16 + ((aqi - 80) / 20) * 4;
+    } else if (aqi >= 60) {
+      baseScore = 12 + ((aqi - 60) / 19) * 3.8;
+    } else if (aqi >= 40) {
+      baseScore = 8 + ((aqi - 40) / 19) * 3.8;
+    } else if (aqi >= 20) {
+      baseScore = 4 + ((aqi - 20) / 19) * 3.8;
+    } else if (aqi >= 1) {
+      baseScore = 0.2 + ((aqi - 1) / 18) * 3.6;
+    } else {
+      baseScore = 0;
+    }
 
     const metrics = {
       aqi,
