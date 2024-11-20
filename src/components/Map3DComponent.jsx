@@ -1,4 +1,4 @@
-import { Box, CircularProgress, Typography, Snackbar, Alert } from "@mui/material";
+import { Box, CircularProgress, Snackbar, Alert } from "@mui/material";
 import { useEffect, useRef, useState } from "react";
 import LayerControlPanel, { LAYER_TYPES } from "./LayerControlPanel";
 import SearchBar from "./Searchbar";
@@ -13,6 +13,7 @@ import GreenSpacesPanel from "./GreenSpacesPanel";
 import { createTransitLayer } from "../layers/TransitLayer";
 import TransitPanel from "./TransitPanel";
 import SustainabilityScorePanel from "./ScorePanel";
+import WalkabilityPanel from "./WalkabilityPanel";
 
 const Map3DComponent = () => {
   const mapContainerRef = useRef(null);
@@ -28,6 +29,8 @@ const Map3DComponent = () => {
   const activeLayersRef = useRef({});
   const [sustainabilityScore, setSustainabilityScore] = useState(null);
   const [selectedPanel, setSelectedPanel] = useState(null);
+  const [walkabilityData, setWalkabilityData] = useState(null);
+  const [aqData, setAqData] = useState(null);
 
   const handleToggleLayer = async (layerId) => {
     setActiveLayers((prev) => {
@@ -49,7 +52,6 @@ const Map3DComponent = () => {
         map3DRef.current.center = newLocation;
       }
 
-      // Update layers
       Object.entries(activeLayers).forEach(([layerId, isActive]) => {
         if (isActive) {
           if (layersRef.current[layerId]) {
@@ -80,7 +82,7 @@ const Map3DComponent = () => {
 
     try {
       let layers = null;
-
+      let walkabilityData = null;
       switch (layerId) {
         case LAYER_TYPES.SOLAR:
           layers = await createSolarLayer(map3DRef, currentLocation, showNotification, setIsLoading, setSolarData);
@@ -91,7 +93,11 @@ const Map3DComponent = () => {
           break;
 
         case LAYER_TYPES.WALKABILITY:
-          layers = await createWalkabilityLayer(map3DRef, currentLocation);
+          walkabilityData = await createWalkabilityLayer(map3DRef, currentLocation, setNotification, setIsLoading);
+          if (walkabilityData) {
+            layers = walkabilityData.layers;
+            setWalkabilityData(walkabilityData.amenityData);
+          }
           break;
 
         case LAYER_TYPES.GREEN_SPACES:
@@ -244,7 +250,13 @@ const Map3DComponent = () => {
         selectedPanel={selectedPanel}
       />
 
-      <AirQualityPanel location={currentLocation} visible={activeLayers[LAYER_TYPES.AIR_QUALITY] && selectedPanel === LAYER_TYPES.AIR_QUALITY} />
+      <AirQualityPanel
+        location={currentLocation}
+        aqData={aqData}
+        setAqData={setAqData}
+        visible={activeLayers[LAYER_TYPES.AIR_QUALITY] && selectedPanel === LAYER_TYPES.AIR_QUALITY}
+      />
+      <WalkabilityPanel location={currentLocation} visible={activeLayers[LAYER_TYPES.WALKABILITY]} walkabilityData={walkabilityData} />
       <SolarPanel location={currentLocation} visible={activeLayers[LAYER_TYPES.SOLAR] && selectedPanel === LAYER_TYPES.SOLAR} />
       <GreenSpacesPanel
         location={currentLocation}
@@ -257,12 +269,15 @@ const Map3DComponent = () => {
         transitData={transitData}
       />
       <SustainabilityScorePanel
-        visible={true} // You could add this to layer controls if desired
+        visible={true}
         sustainabilityScore={sustainabilityScore}
+        setSustainabilityScore={setSustainabilityScore}
         activeLayers={activeLayers}
         solarData={solarData}
         greenSpacesData={greenSpaces}
         transitData={transitData}
+        walkabilityData={walkabilityData}
+        airQualityData={aqData}
         currentLocation={currentLocation}
       />
 

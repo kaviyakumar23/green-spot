@@ -1,18 +1,9 @@
 import { Paper, Typography, Box, CircularProgress, Alert } from "@mui/material";
 import { Air } from "@mui/icons-material";
 import { useState, useEffect } from "react";
+import { rgbToHex } from "../utils/utility";
 
-// Helper to convert RGB values from API to CSS color
-const rgbToHex = (r, g, b) => {
-  const toHex = (c) => {
-    const hex = Math.round(c * 255).toString(16);
-    return hex.length === 1 ? "0" + hex : hex;
-  };
-  return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
-};
-
-const AirQualityPanel = ({ location, visible }) => {
-  const [aqData, setAqData] = useState(null);
+const AirQualityPanel = ({ location, aqData, setAqData, visible }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 

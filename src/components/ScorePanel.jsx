@@ -1,56 +1,81 @@
 import { useState } from "react";
 import { Paper, Typography, Box, Grid, LinearProgress, Accordion, AccordionSummary, AccordionDetails, Chip, Skeleton, Alert } from "@mui/material";
-import { GaugeCircle, ChevronDown, Sun as WbSunny, TreePine as Park, Train } from "lucide-react";
+import { GaugeCircle, ChevronDown, Sun as WbSunny, TreePine as Park, Train, Wind, Footprints } from "lucide-react";
 import { LAYER_TYPES } from "./LayerControlPanel";
+import { formatNumber, formatDistance, getScoreColor, getGradeColor, getGrade, getDistance } from "../utils/scoreUtils";
 
-const SustainabilityScorePanel = ({ visible, activeLayers, solarData, greenSpacesData, transitData, currentLocation }) => {
+const SustainabilityScorePanel = ({
+  visible,
+  activeLayers,
+  solarData,
+  greenSpacesData,
+  transitData,
+  currentLocation,
+  walkabilityData,
+  airQualityData,
+}) => {
   const [expandedPanel, setExpandedPanel] = useState(false);
 
   if (!visible) return null;
 
-  // Helper functions
-  const formatNumber = (num) => {
-    if (typeof num !== "number") return "N/A";
-    return Math.round(num).toLocaleString();
+  const calculateWalkabilityScore = (data) => {
+    if (!data) return { score: 0, metrics: {} };
+
+    const metrics = {
+      totalAmenities: Object.values(data).reduce((sum, places) => sum + places.length, 0),
+      amenityTypes: Object.entries(data).reduce((acc, [type, places]) => {
+        if (places.length > 0) acc[type] = places.length;
+        return acc;
+      }, {}),
+      averageDistance:
+        Object.values(data).reduce((sum, places) => sum + places.reduce((total, place) => total + place.distance, 0), 0) /
+        Object.values(data).reduce((sum, places) => sum + places.length, 0),
+    };
+
+    // Score calculation (30 points max)
+    const amenityScore = Math.min(metrics.totalAmenities * 2, 15); // Up to 15 points for number of amenities
+    const diversityScore = Math.min(Object.keys(metrics.amenityTypes).length * 2, 10); // Up to 10 points for diversity
+    const proximityScore = Math.min(Math.max(10 - metrics.averageDistance * 2, 0), 5); // Up to 5 points for proximity
+
+    const totalScore = Math.min(amenityScore + diversityScore + proximityScore, 30);
+
+    return {
+      score: totalScore,
+      metrics: {
+        ...metrics,
+        scores: {
+          amenities: amenityScore,
+          diversity: diversityScore,
+          proximity: proximityScore,
+        },
+      },
+    };
   };
 
-  const formatDistance = (distance) => {
-    if (typeof distance !== "number") return "N/A";
-    return `${distance.toFixed(1)} km`;
+  const calculateAirQualityScore = (data) => {
+    if (!data?.indexes?.[0]) return { score: 0, metrics: {} };
+
+    const primaryIndex = data.indexes[0];
+
+    // Convert AQI to a 0-20 score (lower AQI is better)
+    // Assuming AQI scale of 0-500, where 0-50 is considered good
+    const aqi = primaryIndex.aqi || primaryIndex.aqiDisplay;
+    const baseScore = Math.max(20 - aqi / 25, 0);
+
+    const metrics = {
+      aqi,
+      category: primaryIndex.category,
+      dominantPollutant: data.dominantPollutant,
+      healthRecommendations: data.healthRecommendations,
+      updatedAt: data.dateTime,
+    };
+
+    return {
+      score: baseScore,
+      metrics,
+    };
   };
 
-  const getScoreColor = (score, max) => {
-    const percentage = (score / max) * 100;
-    if (percentage >= 80) return "success";
-    if (percentage >= 60) return "warning";
-    return "error";
-  };
-
-  const getGradeColor = (grade) => {
-    switch (grade?.[0]) {
-      case "A":
-        return "#4CAF50";
-      case "B":
-        return "#8BC34A";
-      case "C":
-        return "#FFC107";
-      case "D":
-        return "#FF9800";
-      default:
-        return "#F44336";
-    }
-  };
-
-  const getMetricValue = (path, defaultValue = "N/A") => {
-    try {
-      const value = path();
-      return value !== undefined && value !== null ? value : defaultValue;
-    } catch {
-      return defaultValue;
-    }
-  };
-
-  // Calculate scores for each layer
   const calculateSolarScore = (data) => {
     if (!data?.solarPotential) return { score: 0, metrics: {} };
 
@@ -76,7 +101,6 @@ const SustainabilityScorePanel = ({ visible, activeLayers, solarData, greenSpace
   const calculateGreenSpaceScore = (data) => {
     if (!data?.length) return { score: 0, metrics: {} };
 
-    // Helper to calculate area from viewport
     const calculateAreaFromViewport = (geometry) => {
       if (!geometry?.viewport) return 0;
       const bounds = geometry.viewport;
@@ -100,7 +124,7 @@ const SustainabilityScorePanel = ({ visible, activeLayers, solarData, greenSpace
           lat: park.geometry.location.lat(),
           lng: park.geometry.location.lng(),
         },
-        currentLocation // You'll need to pass this as a parameter
+        currentLocation
       ),
     }));
 
@@ -136,10 +160,7 @@ const SustainabilityScorePanel = ({ visible, activeLayers, solarData, greenSpace
       10 // Max 10 points for quality
     );
 
-    const totalScore = Math.min(
-      quantityScore + proximityScore + qualityScore,
-      30 // Ensure we don't exceed max score
-    );
+    const totalScore = Math.min(quantityScore + proximityScore + qualityScore, 30);
 
     return {
       score: totalScore,
@@ -152,24 +173,6 @@ const SustainabilityScorePanel = ({ visible, activeLayers, solarData, greenSpace
         },
       },
     };
-  };
-
-  // Helper function to calculate distance between two points
-  const getDistance = (point1, point2) => {
-    const R = 6371; // Earth's radius in kilometers
-    const dLat = deg2rad(point2.lat - point1.lat);
-    const dLon = deg2rad(point2.lng - point1.lng);
-
-    const a =
-      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos(deg2rad(point1.lat)) * Math.cos(deg2rad(point2.lat)) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
-
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c;
-  };
-
-  const deg2rad = (deg) => {
-    return deg * (Math.PI / 180);
   };
 
   const calculateTransitScore = (data) => {
@@ -194,7 +197,6 @@ const SustainabilityScorePanel = ({ visible, activeLayers, solarData, greenSpace
     return { score, metrics };
   };
 
-  // Check layer states and calculate scores
   const layerStates = {
     solar: {
       isActive: activeLayers[LAYER_TYPES.SOLAR] || false,
@@ -206,6 +208,16 @@ const SustainabilityScorePanel = ({ visible, activeLayers, solarData, greenSpace
       hasData: Boolean(greenSpacesData),
       score: calculateGreenSpaceScore(greenSpacesData),
     },
+    walkability: {
+      isActive: activeLayers[LAYER_TYPES.WALKABILITY] || false,
+      hasData: Boolean(walkabilityData),
+      score: calculateWalkabilityScore(walkabilityData),
+    },
+    airQuality: {
+      isActive: activeLayers[LAYER_TYPES.AIR_QUALITY] || false,
+      hasData: Boolean(airQualityData),
+      score: calculateAirQualityScore(airQualityData),
+    },
     transit: {
       isActive: activeLayers[LAYER_TYPES.TRANSIT] || false,
       hasData: Boolean(transitData),
@@ -213,36 +225,42 @@ const SustainabilityScorePanel = ({ visible, activeLayers, solarData, greenSpace
     },
   };
 
-  // Calculate total score
+  const scoreWeights = {
+    solar: 40,
+    walkability: 30,
+    airQuality: 20,
+    greenSpace: 30,
+    transit: 30,
+  };
+
   const calculateTotalScore = () => {
     let totalScore = 0;
     let maxPossibleScore = 0;
 
-    if (layerStates.solar.isActive) {
-      maxPossibleScore += 40;
-      if (layerStates.solar.hasData) totalScore += layerStates.solar.score.score;
-    }
-    if (layerStates.greenSpace.isActive) {
-      maxPossibleScore += 30;
-      if (layerStates.greenSpace.hasData) totalScore += layerStates.greenSpace.score.score;
-    }
-    if (layerStates.transit.isActive) {
-      maxPossibleScore += 30;
-      if (layerStates.transit.hasData) totalScore += layerStates.transit.score.score;
-    }
+    Object.entries(layerStates).forEach(([key, state]) => {
+      if (state.isActive) {
+        maxPossibleScore += scoreWeights[key];
+        if (state.hasData) {
+          totalScore += state.score.score || 0;
+        }
+      }
+    });
 
-    return maxPossibleScore > 0 ? (totalScore / maxPossibleScore) * 100 : 0;
+    return maxPossibleScore > 0 ? Math.round((totalScore / maxPossibleScore) * 100) : 0;
   };
 
-  const getGrade = (score) => {
-    if (score >= 90) return "A+";
-    if (score >= 80) return "A";
-    if (score >= 70) return "B+";
-    if (score >= 60) return "B";
-    if (score >= 50) return "C+";
-    if (score >= 40) return "C";
-    if (score >= 30) return "D";
-    return "F";
+  const getScoreContribution = (score, maxScore) => {
+    if (!score || !maxScore) return 0;
+    return Math.round((score / maxScore) * 100);
+  };
+
+  const renderLayerScore = (layerState, maxScore) => {
+    if (!layerState.isActive) return "Disabled";
+    if (!layerState.hasData) return "Loading...";
+
+    const score = Math.round(layerState.score.score);
+    const contribution = getScoreContribution(score, maxScore);
+    return `${score}/${maxScore} (${contribution}%)`;
   };
 
   const totalScore = calculateTotalScore();
@@ -353,17 +371,106 @@ const SustainabilityScorePanel = ({ visible, activeLayers, solarData, greenSpace
               </Box>
             )}
 
+            <Box sx={{ mt: 2 }}>
+              <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                Score Breakdown
+              </Typography>
+              <Box sx={{ mb: 2 }}>
+                {Object.entries(layerStates).map(([key, state]) => {
+                  if (!state.isActive) return null;
+                  const maxScore = scoreWeights[key];
+                  const score = state.hasData ? state.score.score : 0;
+                  const contribution = getScoreContribution(score, maxScore);
+
+                  return (
+                    <Box key={key} sx={{ display: "flex", justifyContent: "space-between", mb: 0.5 }}>
+                      <Typography variant="body2">{key.charAt(0).toUpperCase() + key.slice(1)}:</Typography>
+                      <Typography variant="body2">{state.hasData ? `${Math.round(score)}/${maxScore} (${contribution}%)` : "N/A"}</Typography>
+                    </Box>
+                  );
+                })}
+                <Box sx={{ mt: 1, pt: 1, borderTop: "1px solid rgba(0,0,0,0.1)" }}>
+                  <Typography variant="body2" fontWeight="bold" sx={{ display: "flex", justifyContent: "space-between" }}>
+                    <span>Total Score:</span>
+                    <span>{Math.round(totalScore)}/100</span>
+                  </Typography>
+                </Box>
+              </Box>
+            </Box>
+            {/* Walkability Section */}
+            <Box sx={{ mt: 2 }}>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1, width: "100%", mb: 1 }}>
+                <Footprints color={getScoreColor(layerStates.walkability.score.score, 30)} />
+                <Typography>Walkability</Typography>
+                <Typography sx={{ ml: "auto" }}>
+                  {layerStates.walkability.isActive
+                    ? layerStates.walkability.hasData
+                      ? renderLayerScore(layerStates.walkability, 30)
+                      : "Loading..."
+                    : "Disabled"}
+                </Typography>
+              </Box>
+              {renderMetricsSection(layerStates.walkability, () => (
+                <Grid container spacing={2}>
+                  <Grid item xs={12}>
+                    <Typography variant="body2" color="text.secondary" gutterBottom>
+                      Metrics
+                    </Typography>
+                    <Box sx={{ mb: 2 }}>
+                      <Typography variant="body2">Total Amenities: {formatNumber(layerStates.walkability.score.metrics.totalAmenities)}</Typography>
+                      <Typography variant="body2">
+                        Average Distance: {formatDistance(layerStates.walkability.score.metrics.averageDistance)}
+                      </Typography>
+                      <Typography variant="body2">Amenity Types: {Object.keys(layerStates.walkability.score.metrics.amenityTypes).length}</Typography>
+                    </Box>
+
+                    <Typography variant="body2" color="text.secondary" gutterBottom>
+                      Score Breakdown
+                    </Typography>
+                    <Box sx={{ mb: 2 }}>
+                      <Typography variant="body2">Amenities: {layerStates.walkability.score.metrics.scores.amenities}/15</Typography>
+                      <Typography variant="body2">Diversity: {layerStates.walkability.score.metrics.scores.diversity}/10</Typography>
+                      <Typography variant="body2">Proximity: {layerStates.walkability.score.metrics.scores.proximity}/5</Typography>
+                    </Box>
+                  </Grid>
+                </Grid>
+              ))}
+            </Box>
+            {/* Air Quality Section */}
+            <Box sx={{ mt: 2 }}>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1, width: "100%", mb: 1 }}>
+                <Wind color={getScoreColor(layerStates.airQuality.score.score, 20)} />
+                <Typography>Air Quality</Typography>
+                <Typography sx={{ ml: "auto" }}>
+                  {layerStates.airQuality.isActive
+                    ? layerStates.airQuality.hasData
+                      ? renderLayerScore(layerStates.airQuality, 20)
+                      : "Loading..."
+                    : "Disabled"}
+                </Typography>
+              </Box>
+              {renderMetricsSection(layerStates.airQuality, () => (
+                <Grid container spacing={2}>
+                  <Grid item xs={12}>
+                    <Typography variant="body2" color="text.secondary" gutterBottom>
+                      Metrics
+                    </Typography>
+                    <Box sx={{ mb: 2 }}>
+                      <Typography variant="body2">AQI: {layerStates.airQuality.score.metrics.aqi}</Typography>
+                      <Typography variant="body2">Category: {layerStates.airQuality.score.metrics.category}</Typography>
+                      <Typography variant="body2">Dominant Pollutant: {layerStates.airQuality.score.metrics.dominantPollutant}</Typography>
+                    </Box>
+                  </Grid>
+                </Grid>
+              ))}
+            </Box>
             {/* Solar Score Section */}
             <Box sx={{ mt: 2 }}>
               <Box sx={{ display: "flex", alignItems: "center", gap: 1, width: "100%", mb: 1 }}>
                 <WbSunny color={getScoreColor(layerStates.solar.score.score, 40)} />
                 <Typography>Solar Potential</Typography>
                 <Typography sx={{ ml: "auto" }}>
-                  {layerStates.solar.isActive
-                    ? layerStates.solar.hasData
-                      ? `${Math.round(layerStates.solar.score.score)}/40`
-                      : "Loading..."
-                    : "Disabled"}
+                  {layerStates.solar.isActive ? (layerStates.solar.hasData ? renderLayerScore(layerStates.solar, 40) : "Loading...") : "Disabled"}
                 </Typography>
               </Box>
               {renderMetricsSection(layerStates.solar, () => (
@@ -385,7 +492,6 @@ const SustainabilityScorePanel = ({ visible, activeLayers, solarData, greenSpace
                 </Grid>
               ))}
             </Box>
-
             {/* Green Spaces Section */}
             <Box sx={{ mt: 2 }}>
               <Box sx={{ display: "flex", alignItems: "center", gap: 1, width: "100%", mb: 1 }}>
@@ -394,7 +500,7 @@ const SustainabilityScorePanel = ({ visible, activeLayers, solarData, greenSpace
                 <Typography sx={{ ml: "auto" }}>
                   {layerStates.greenSpace.isActive
                     ? layerStates.greenSpace.hasData
-                      ? `${Math.round(layerStates.greenSpace.score.score)}/30`
+                      ? renderLayerScore(layerStates.greenSpace, 30)
                       : "Loading..."
                     : "Disabled"}
                 </Typography>
@@ -447,7 +553,6 @@ const SustainabilityScorePanel = ({ visible, activeLayers, solarData, greenSpace
                 </Grid>
               ))}
             </Box>
-
             {/* Transit Section */}
             <Box sx={{ mt: 2 }}>
               <Box sx={{ display: "flex", alignItems: "center", gap: 1, width: "100%", mb: 1 }}>
@@ -456,7 +561,7 @@ const SustainabilityScorePanel = ({ visible, activeLayers, solarData, greenSpace
                 <Typography sx={{ ml: "auto" }}>
                   {layerStates.transit.isActive
                     ? layerStates.transit.hasData
-                      ? `${Math.round(layerStates.transit.score.score)}/30`
+                      ? renderLayerScore(layerStates.transit, 30)
                       : "Loading..."
                     : "Disabled"}
                 </Typography>

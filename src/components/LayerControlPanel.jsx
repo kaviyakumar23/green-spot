@@ -27,7 +27,7 @@ const LayerControlPanel = ({ activeLayers, onToggleLayer, onSelectPanel, selecte
       id: LAYER_TYPES.WALKABILITY,
       icon: <DirectionsWalk size={20} />,
       name: "Walkability",
-      description: "Walkability 15 minutes",
+      description: "Walkability score",
     },
     {
       id: LAYER_TYPES.GREEN_SPACES,

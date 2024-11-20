@@ -10,7 +10,7 @@ export const initializeGoogleMaps = (g) => {
     b = window;
   b = b[c] || (b[c] = {});
   var d = b.maps || (b.maps = {}),
-    r = new Set(),
+    r = new Set(["maps3d", "places"]),
     e = new URLSearchParams(),
     u = () =>
       h ||
@@ -30,4 +30,11 @@ export const initializeGoogleMaps = (g) => {
         m.head.append(a);
       }));
   d[l] ? console.warn(p + " only loads once. Ignoring:", g) : (d[l] = (f, ...n) => r.add(f) && u().then(() => d[l](f, ...n)));
+};
+
+export const getPlacesService = async (mapElement) => {
+  if (!google?.maps?.places?.PlacesService) {
+    await google.maps.importLibrary("places");
+  }
+  return new google.maps.places.PlacesService(mapElement);
 };
