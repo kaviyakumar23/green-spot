@@ -18,7 +18,8 @@
     "@vis.gl/react-google-maps": "^1.4.0",
     "lucide-react": "^0.460.0",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react-dom": "^18.3.1",
+    "vite-plugin-vercel": "^9.0.3"
   },
   "devDependencies": {
     "@eslint/js": "^9.13.0",
