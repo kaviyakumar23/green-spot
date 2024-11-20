@@ -1,6 +1,6 @@
 import { Paper, Typography, Box, CircularProgress, Alert } from "@mui/material";
 import { Air } from "@mui/icons-material";
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { rgbToHex } from "../utils/utility";
 
 const AirQualityPanel = ({ location, aqData, setAqData, visible }) => {
