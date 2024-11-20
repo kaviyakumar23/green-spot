@@ -1,7 +1,7 @@
 import { Box, CircularProgress, Snackbar, Alert } from "@mui/material";
 import { useEffect, useRef, useState } from "react";
 import LayerControlPanel, { LAYER_TYPES } from "./LayerControlPanel";
-import SearchBar from "./Searchbar";
+import SearchBar from "./SearchBar";
 import AirQualityPanel from "./AirQualityPanel";
 import SolarPanel from "./SolarPanel";
 import { createSolarLayer } from "../layers/SolarLayer";
