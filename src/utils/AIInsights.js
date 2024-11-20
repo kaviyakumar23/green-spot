@@ -89,7 +89,7 @@ export const generateInsights = async (solarData, airQualityData, walkabilityDat
     }
 
     const data = await response.json();
-    return data.insights;
+    return data.body.insights;
   } catch (err) {
     console.error("AI Analysis error:", err);
   }
