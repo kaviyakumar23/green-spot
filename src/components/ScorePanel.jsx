@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { Paper, Typography, Box, Grid, LinearProgress, Accordion, AccordionSummary, AccordionDetails, Chip, Skeleton, Alert } from "@mui/material";
-import { GaugeCircle, ChevronDown, Sun as WbSunny, TreePine as Park, Train, Wind, Footprints } from "lucide-react";
+import { GaugeCircle, ChevronDown, Sun as WbSunny, TreePine as Park, Train, Wind, Footprints, Brain } from "lucide-react";
 import { LAYER_TYPES } from "./LayerControlPanel";
 import { formatNumber, formatDistance, getScoreColor, getGradeColor, getGrade, getDistance } from "../utils/scoreUtils";
+import ReactMarkdown from "react-markdown";
 
 const SustainabilityScorePanel = ({
   visible,
@@ -13,6 +14,7 @@ const SustainabilityScorePanel = ({
   currentLocation,
   walkabilityData,
   airQualityData,
+  aiInsights,
 }) => {
   const [expandedPanel, setExpandedPanel] = useState(false);
 
@@ -318,6 +320,40 @@ const SustainabilityScorePanel = ({
       }}
     >
       <Box sx={{ overflow: "auto" }}>
+        <Accordion
+          expanded={expandedPanel === "insights"}
+          onChange={() => setExpandedPanel(expandedPanel === "insights" ? false : "insights")}
+          sx={{ mb: 1 }}
+        >
+          <AccordionSummary expandIcon={<ChevronDown />}>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1, width: "100%" }}>
+              <Brain />
+              <Typography>AI Insights</Typography>
+            </Box>
+          </AccordionSummary>
+          <AccordionDetails>
+            {!aiInsights ? (
+              <Box sx={{ mt: 1 }}>
+                <Alert severity="info">Enable all layers to get AI insights</Alert>
+              </Box>
+            ) : (
+              <Typography variant="body2" component="div">
+                <ReactMarkdown
+                  components={{
+                    p: (props) => <Typography variant="body2" gutterBottom {...props} />,
+                    h1: (props) => <Typography variant="h5" gutterBottom {...props} />,
+                    h2: (props) => <Typography variant="h6" gutterBottom {...props} />,
+                    h3: (props) => <Typography variant="subtitle1" gutterBottom {...props} />,
+                    ul: (props) => <Box component="ul" sx={{ pl: 2 }} {...props} />,
+                    li: (props) => <Typography variant="body2" component="li" {...props} />,
+                  }}
+                >
+                  {aiInsights}
+                </ReactMarkdown>
+              </Typography>
+            )}
+          </AccordionDetails>
+        </Accordion>
         <Accordion
           expanded={expandedPanel === "overall"}
           onChange={() => setExpandedPanel(expandedPanel === "overall" ? false : "overall")}

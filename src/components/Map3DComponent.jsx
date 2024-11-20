@@ -14,6 +14,7 @@ import { createTransitLayer } from "../layers/TransitLayer";
 import TransitPanel from "./TransitPanel";
 import SustainabilityScorePanel from "./ScorePanel";
 import WalkabilityPanel from "./WalkabilityPanel";
+import { generateInsights } from "../utils/AIInsights";
 
 const Map3DComponent = () => {
   const mapContainerRef = useRef(null);
@@ -32,6 +33,7 @@ const Map3DComponent = () => {
   const [walkabilityData, setWalkabilityData] = useState(null);
   const [aqData, setAqData] = useState(null);
   const [visibleMapLayer, setVisibleMapLayer] = useState(null);
+  const [aiInsights, setAiInsights] = useState(null);
 
   const handleToggleLayer = async (layerId) => {
     setActiveLayers((prev) => {
@@ -222,8 +224,20 @@ const Map3DComponent = () => {
   }, []);
 
   useEffect(() => {
-    console.log("Active layers updated:", activeLayers);
+    const requiredLayers = [LAYER_TYPES.AIR_QUALITY, LAYER_TYPES.SOLAR, LAYER_TYPES.WALKABILITY, LAYER_TYPES.GREEN_SPACES, LAYER_TYPES.TRANSIT];
+
+    const allRequiredLayersActive =
+      Object.keys(activeLayers).length === requiredLayers.length && requiredLayers.every((layer) => activeLayers[layer] === true);
+
+    if (allRequiredLayersActive) {
+      fetchAIInsights();
+    }
   }, [activeLayers]);
+
+  const fetchAIInsights = async () => {
+    const insights = await generateInsights(solarData, aqData, walkabilityData, greenSpaces, transitData, currentLocation);
+    setAiInsights(insights);
+  };
 
   const handleSearchLocation = (location) => {
     handleLocationChange({
@@ -297,6 +311,7 @@ const Map3DComponent = () => {
         walkabilityData={walkabilityData}
         airQualityData={aqData}
         currentLocation={currentLocation}
+        aiInsights={aiInsights}
       />
 
       {isLoading && (
