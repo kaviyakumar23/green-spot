@@ -31,13 +31,23 @@ const Map3DComponent = () => {
   const [selectedPanel, setSelectedPanel] = useState(null);
   const [walkabilityData, setWalkabilityData] = useState(null);
   const [aqData, setAqData] = useState(null);
+  const [visibleMapLayer, setVisibleMapLayer] = useState(null);
 
   const handleToggleLayer = async (layerId) => {
     setActiveLayers((prev) => {
-      const newState = { ...prev, [layerId]: !prev[layerId] };
-      console.log("newState", newState);
-      if (map3DRef.current) {
-        updateLayerVisibility(layerId, newState[layerId]);
+      const newState = {
+        ...prev,
+        [layerId]: !prev[layerId],
+      };
+
+      if (!prev[layerId]) {
+        setTimeout(() => {
+          updateLayerVisibility(layerId);
+        }, 0);
+      } else if (visibleMapLayer === layerId) {
+        setTimeout(() => {
+          updateLayerVisibility(null);
+        }, 0);
       }
 
       return newState;
@@ -68,35 +78,46 @@ const Map3DComponent = () => {
     }
   };
 
-  const updateLayerVisibility = async (layerId, isVisible) => {
-    if (layersRef.current[layerId]) {
-      if (Array.isArray(layersRef.current[layerId])) {
-        layersRef.current[layerId].forEach((layer) => layer.remove());
-      } else {
-        layersRef.current[layerId].remove();
-      }
-      layersRef.current[layerId] = null;
+  const handleLayerSelect = (layerId) => {
+    if (activeLayers[layerId] && visibleMapLayer !== layerId) {
+      updateLayerVisibility(layerId);
     }
+  };
+  const updateLayerVisibility = async (layerId) => {
+    if (layerId === visibleMapLayer) return;
 
-    if (!isVisible) return;
-
+    setIsLoading(true);
     try {
+      // Clear existing layers
+      Object.entries(layersRef.current).forEach(([_, layer]) => {
+        if (Array.isArray(layer)) {
+          layer.forEach((l) => l.remove());
+        } else if (layer) {
+          layer.remove();
+        }
+      });
+      layersRef.current = {};
+
+      if (!layerId) {
+        setVisibleMapLayer(null);
+        return;
+      }
+
       let layers = null;
-      let walkabilityData = null;
       switch (layerId) {
         case LAYER_TYPES.SOLAR:
           layers = await createSolarLayer(map3DRef, currentLocation, showNotification, setIsLoading, setSolarData);
           break;
 
         case LAYER_TYPES.AIR_QUALITY:
-          layers = await createAirQualityLayer(map3DRef, currentLocation);
+          layers = await createAirQualityLayer(map3DRef, currentLocation, showNotification, setIsLoading, setAqData);
           break;
 
         case LAYER_TYPES.WALKABILITY:
-          walkabilityData = await createWalkabilityLayer(map3DRef, currentLocation, setNotification, setIsLoading);
-          if (walkabilityData) {
-            layers = walkabilityData.layers;
-            setWalkabilityData(walkabilityData.amenityData);
+          const walkabilityResult = await createWalkabilityLayer(map3DRef, currentLocation, showNotification, setIsLoading);
+          if (walkabilityResult) {
+            layers = walkabilityResult.layers;
+            setWalkabilityData(walkabilityResult.amenityData);
           }
           break;
 
@@ -112,25 +133,17 @@ const Map3DComponent = () => {
       if (layers) {
         layersRef.current[layerId] = layers;
         if (Array.isArray(layers)) {
-          layers.forEach((layer) => {
-            map3DRef.current.append(layer);
-
-            // Add click listener for solar segments
-            if (layerId === LAYER_TYPES.SOLAR) {
-              layer.addEventListener("click", () => {
-                if (layer.segment) {
-                  showNotification(`Roof segment solar potential: ${Math.round(layer.segment.stats.sunshineQuantiles[5])} kWh/year`, "info");
-                }
-              });
-            }
-          });
+          layers.forEach((layer) => map3DRef.current?.append(layer));
         } else {
-          map3DRef.current.append(layers);
+          map3DRef.current?.append(layers);
         }
+        setVisibleMapLayer(layerId);
       }
     } catch (error) {
       console.error(`Error updating ${layerId} layer:`, error);
       showNotification(`Failed to update ${layerId} layer`, "error");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -248,6 +261,8 @@ const Map3DComponent = () => {
         onToggleLayer={handleToggleLayer}
         onSelectPanel={setSelectedPanel}
         selectedPanel={selectedPanel}
+        visibleMapLayer={visibleMapLayer}
+        onLayerSelect={handleLayerSelect}
       />
 
       <AirQualityPanel

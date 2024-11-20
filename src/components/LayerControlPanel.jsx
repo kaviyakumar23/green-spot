@@ -9,7 +9,7 @@ export const LAYER_TYPES = {
   TRANSIT: "transit",
 };
 
-const LayerControlPanel = ({ activeLayers, onToggleLayer, onSelectPanel, selectedPanel }) => {
+const LayerControlPanel = ({ activeLayers, onToggleLayer, onSelectPanel, selectedPanel, onLayerSelect, visibleMapLayer }) => {
   const layers = [
     {
       id: LAYER_TYPES.AIR_QUALITY,
@@ -53,6 +53,7 @@ const LayerControlPanel = ({ activeLayers, onToggleLayer, onSelectPanel, selecte
   const handleLayerClick = (layerId) => {
     if (activeLayers[layerId]) {
       onSelectPanel(layerId);
+      onLayerSelect(layerId);
     }
   };
 
@@ -78,24 +79,18 @@ const LayerControlPanel = ({ activeLayers, onToggleLayer, onSelectPanel, selecte
             <ListItem
               key={layer.id}
               sx={{
-                pr: 1,
                 cursor: activeLayers[layer.id] ? "pointer" : "default",
-                bgcolor: selectedPanel === layer.id ? "rgba(0, 0, 0, 0.04)" : "transparent",
-                "&:hover": activeLayers[layer.id]
-                  ? {
-                      bgcolor: "rgba(0, 0, 0, 0.08)",
-                    }
-                  : {},
+                bgcolor: visibleMapLayer === layer.id ? "rgba(0, 0, 0, 0.04)" : "transparent",
               }}
               onClick={(e) => {
-                if (!e.target.closest(".MuiSwitch-root")) {
+                if (!e.target.closest(".MuiSwitch-root") && activeLayers[layer.id]) {
                   handleLayerClick(layer.id);
                 }
               }}
             >
               <ListItemIcon>{layer.icon}</ListItemIcon>
-              <ListItemText primary={layer.name} secondary={layer.description} />
-              <Switch className="layer-switch" edge="end" checked={activeLayers[layer.id] || false} onChange={() => handleToggleLayer(layer.id)} />
+              <ListItemText primary={layer.name} />
+              <Switch className="MuiSwitch-root" edge="end" checked={activeLayers[layer.id]} onChange={() => handleToggleLayer(layer.id)} />
             </ListItem>
           ))}
         </List>
