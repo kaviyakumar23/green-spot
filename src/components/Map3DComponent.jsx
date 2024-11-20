@@ -193,7 +193,7 @@ const Map3DComponent = () => {
                 layersRef.current[LAYER_TYPES.SOLAR].forEach((layer) => layer.remove());
               }
               // Create new solar layer for selected position
-              const layers = await createSolarLayer(map3DRef, newLocation, showNotification, setIsLoading);
+              const layers = await createSolarLayer(map3DRef, newLocation, showNotification, setIsLoading, setSolarData);
               if (layers) {
                 layersRef.current[LAYER_TYPES.SOLAR] = layers;
                 layers.forEach((layer) => map3DRef.current.append(layer));
