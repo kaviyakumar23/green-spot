@@ -2,6 +2,19 @@ import { Paper, Typography, Box, CircularProgress, Alert, Grid, Chip } from "@mu
 import { Train } from "lucide-react";
 import { useState, useEffect } from "react";
 
+const getStationType = (type) => {
+  switch (type) {
+    case "subway_station":
+      return "Subway";
+    case "train_station":
+      return "Train";
+    case "bus_station":
+      return "Bus";
+    default:
+      return "Transit";
+  }
+};
+
 const TransitPanel = ({ location, visible, transitData }) => {
   const [stats, setStats] = useState({
     totalStations: 0,
@@ -38,19 +51,6 @@ const TransitPanel = ({ location, visible, transitData }) => {
   if (!visible) return null;
 
   const formatNumber = (num) => new Intl.NumberFormat().format(Math.round(num));
-
-  const getStationType = (type) => {
-    switch (type) {
-      case "subway_station":
-        return "Subway";
-      case "train_station":
-        return "Train";
-      case "bus_station":
-        return "Bus";
-      default:
-        return "Transit";
-    }
-  };
 
   const getTypeColor = (type) => {
     switch (type) {

@@ -88,7 +88,6 @@ const Map3DComponent = () => {
 
     setIsLoading(true);
     try {
-      // Clear existing layers
       Object.entries(layersRef.current).forEach(([_, layer]) => {
         if (Array.isArray(layer)) {
           layer.forEach((l) => l.remove());
@@ -271,7 +270,11 @@ const Map3DComponent = () => {
         setAqData={setAqData}
         visible={activeLayers[LAYER_TYPES.AIR_QUALITY] && selectedPanel === LAYER_TYPES.AIR_QUALITY}
       />
-      <WalkabilityPanel location={currentLocation} visible={activeLayers[LAYER_TYPES.WALKABILITY]} walkabilityData={walkabilityData} />
+      <WalkabilityPanel
+        location={currentLocation}
+        visible={activeLayers[LAYER_TYPES.WALKABILITY] && selectedPanel === LAYER_TYPES.WALKABILITY}
+        walkabilityData={walkabilityData}
+      />
       <SolarPanel location={currentLocation} visible={activeLayers[LAYER_TYPES.SOLAR] && selectedPanel === LAYER_TYPES.SOLAR} />
       <GreenSpacesPanel
         location={currentLocation}
