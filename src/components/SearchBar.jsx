@@ -20,7 +20,6 @@ const SearchBar = ({ onLocationSelect, onUseCurrentLocation }) => {
       const autocompleteService = new google.maps.places.AutocompleteService();
       const results = await autocompleteService.getPlacePredictions({
         input: value,
-        types: ["(cities)"], // Restrict to cities for now
       });
       setPredictions(results?.predictions || []);
       setShowPredictions(true);
@@ -77,7 +76,7 @@ const SearchBar = ({ onLocationSelect, onUseCurrentLocation }) => {
         position: "absolute",
         top: 20,
         left: 20,
-        zIndex: 1000,
+        zIndex: 1002,
         width: 400,
       }}
     >
